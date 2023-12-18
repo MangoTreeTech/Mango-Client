@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mango/app_state/account.dart';
+import 'package:mango/utils/login_info_check.dart';
+import 'package:mango/utils/register_info_check.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
@@ -64,28 +68,65 @@ class LoginBoxWidget extends StatefulWidget {
 }
 
 class _LoginBoxWidgetState extends State<LoginBoxWidget> {
-  String inputUserId = "";
+  String inputUsername = "";
   String inputPassword = "";
+  int pageSet = 0;
   @override
   Widget build(BuildContext context) {
-    final account = context.read<Account>();
+    if (pageSet == 1) {
+      return LoginBoxRegisterWidget(inputUsername, inputPassword, callback);
+    } else {
+      return LoginBoxLoginWidget(inputUsername, inputPassword, callback);
+    }
+  }
+
+  void callback({String? username, String? password, int? pageSet}) {
+    setState(() {
+      if (username != null) inputUsername = username;
+      if (password != null) inputPassword = password;
+      if (pageSet != null) this.pageSet = pageSet;
+    });
+  }
+}
+
+class LoginBoxLoginWidget extends StatefulWidget {
+  const LoginBoxLoginWidget(
+      this.inputUsername, this.inputPassword, this.callback,
+      {super.key});
+  final String inputUsername;
+  final String inputPassword;
+  final Function callback;
+  @override
+  State<LoginBoxLoginWidget> createState() => _LoginBoxLoginWidgetState();
+}
+
+class _LoginBoxLoginWidgetState extends State<LoginBoxLoginWidget> {
+  late String inputUsername;
+  late String inputPassword;
+  late TextEditingController usernameController;
+  late TextEditingController passwordController;
+  @override
+  Widget build(BuildContext context) {
+    Account account = context.read<Account>();
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
           child: TextField(
+            controller: usernameController,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               labelText: '用户名',
             ),
             onChanged: (String s) => setState(() {
-              inputUserId = s;
+              inputUsername = s;
             }),
           ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
           child: TextField(
+            controller: passwordController,
             obscureText: true,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
@@ -97,17 +138,178 @@ class _LoginBoxWidgetState extends State<LoginBoxWidget> {
           ),
         ),
         Container(
-          alignment: Alignment.bottomRight,
-          padding: const EdgeInsets.fromLTRB(0, 10, 10, 0),
-          child: SizedBox(
-            child: ElevatedButton(
-                onPressed: () {
-                  account.login(inputUserId, inputPassword);
-                },
-                child: const Text('登录')),
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ElevatedButton(
+                  onPressed: () {
+                    widget.callback(
+                        username: inputUsername,
+                        password: inputPassword,
+                        pageSet: 1);
+                  },
+                  child: const Text('注册')),
+              OutlinedButton(
+                  onPressed: () {
+                    LoginInfoError e = LoginInfoCheck.offlineCheck(
+                      inputUsername,
+                      inputPassword,
+                    );
+                    if (e == LoginInfoError.noError) {
+                      account.login(inputUsername, inputPassword);
+                    } else {
+                      showToast(
+                          LoginInfoCheck.errorText[e] ?? "Unknown Error!");
+                    }
+                  },
+                  child: const Text('登录')),
+            ],
           ),
         ),
       ],
     );
+  }
+
+  @override
+  void initState() {
+    inputPassword = widget.inputPassword;
+    inputUsername = widget.inputUsername;
+    usernameController = TextEditingController(text: inputUsername);
+    passwordController = TextEditingController(text: inputPassword);
+    super.initState();
+  }
+}
+
+class LoginBoxRegisterWidget extends StatefulWidget {
+  const LoginBoxRegisterWidget(
+      this.inputUsername, this.inputPassword, this.callback,
+      {super.key});
+  final String inputUsername;
+  final String inputPassword;
+  final Function callback;
+  @override
+  State<LoginBoxRegisterWidget> createState() => _LoginBoxRegisterWidgetState();
+}
+
+class _LoginBoxRegisterWidgetState extends State<LoginBoxRegisterWidget> {
+  late String inputUsername;
+  late String inputPassword;
+  String reInputPassword = "";
+  // String inputPhoneNumber = "";
+  String inputEmail = "";
+
+  late TextEditingController usernameController;
+  late TextEditingController passwordController;
+
+  @override
+  Widget build(BuildContext context) {
+    Account account = context.read<Account>();
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
+          child: TextField(
+            controller: usernameController,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: '用户名',
+            ),
+            onChanged: (String s) => setState(() {
+              inputUsername = s;
+            }),
+          ),
+        ),
+        // Padding(
+        //   padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+        //   child: TextField(
+        //     decoration: const InputDecoration(
+        //       border: OutlineInputBorder(),
+        //       labelText: '手机号',
+        //     ),
+        //     onChanged: (String s) => setState(() {
+        //       inputPhoneNumber = s;
+        //     }),
+        //   ),
+        // ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+          child: TextField(
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: '邮箱',
+            ),
+            onChanged: (String s) => setState(() {
+              inputEmail = s;
+            }),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+          child: TextField(
+            controller: passwordController,
+            obscureText: true,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: '密码',
+            ),
+            onChanged: (String s) => setState(() {
+              inputPassword = s;
+            }),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+          child: TextField(
+            obscureText: true,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: '确认密码',
+            ),
+            onChanged: (String s) => setState(() {
+              reInputPassword = s;
+            }),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ElevatedButton(
+                  onPressed: () {
+                    widget.callback(
+                        username: inputUsername,
+                        password: inputPassword,
+                        pageSet: 0);
+                  },
+                  child: const Text('登录')),
+              OutlinedButton(
+                  onPressed: () {
+                    RegisterInfoError e = RegisterInfoCheck.offlineCheck(
+                        inputUsername, inputPassword, reInputPassword,
+                        email: inputEmail);
+                    if (e == RegisterInfoError.noError) {
+                      account.register(inputUsername, reInputPassword);
+                    } else {
+                      showToast(
+                          RegisterInfoCheck.errorText[e] ?? "Unknown Error!");
+                    }
+                  },
+                  child: const Text('注册')),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void initState() {
+    inputPassword = widget.inputPassword;
+    inputUsername = widget.inputUsername;
+    usernameController = TextEditingController(text: inputUsername);
+    passwordController = TextEditingController(text: inputPassword);
+    super.initState();
   }
 }
