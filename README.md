@@ -1,6 +1,6 @@
-# mango
+# Mango
 
-A new Flutter project.
+A new map-based social application, client written in Flutter.
 
 ## Getting Started
 
